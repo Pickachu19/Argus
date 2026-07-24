@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}Manage users · Argus{% endblock %}
+{% block content %}
+<header class="operations-hero">
+  <div><p class="eyebrow">Admin console</p><h1>User access</h1><p>Review account status, assign roles, and require credential resets from one protected workspace.</p></div>
+  <span class="security-pill"><span class="status-dot" aria-hidden="true"></span>Admin verified</span>
+</header>
+<section class="surface-card" aria-labelledby="users-heading">
+  <div class="section-heading"><div><p class="eyebrow">Directory</p><h2 id="users-heading">Account management</h2></div><span class="result-count">Role-based access</span></div>
+  <div class="table-responsive">
+    <table class="table admin-table align-middle">
+      <caption class="visually-hidden">Registered accounts and administrative controls</caption>
+      <thead><tr><th scope="col">Account</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col" class="text-end">Controls</th></tr></thead>
+      <tbody>
+      {% for user in users %}
+        <tr>
+          <td><strong>{{ user.email }}</strong>{% if user.email == current_identity %}<span class="you-label">You</span>{% endif %}</td>
+          <td><span class="role-badge">{{ user.role }}</span></td>
+          <td><span class="status-label {{ 'status-disabled' if user.disabled else 'status-active' }}"><span aria-hidden="true"></span>{{ 'Disabled' if user.disabled else 'Active' }}</span></td>
+          <td><div class="action-group">
+            <form method="post" action="/user/admin/users/{{ user._id }}/role" data-confirm="{{ 'Demote this administrator to a standard user?' if user.role == 'admin' else 'Promote this user to administrator?' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="csrf_access_token" value="{{ request.cookies.get('csrf_access_token', '') }}"><input type="hidden" name="role" value="{{ 'user' if user.role == 'admin' else 'admin' }}"><button class="btn btn-table" type="submit">{{ 'Demote' if user.role == 'admin' else 'Promote' }}</button></form>
+            <form method="post" action="/user/admin/users/{{ user._id }}/status" data-confirm="{{ 'Enable this account?' if user.disabled else 'Disable this account and revoke its sessions?' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="csrf_access_token" value="{{ request.cookies.get('csrf_access_token', '') }}"><button class="btn {{ 'btn-table' if user.disabled else 'btn-table-danger' }}" type="submit">{{ 'Enable' if user.disabled else 'Disable' }}</button></form>
+            <form method="post" action="/user/admin/users/{{ user._id }}/force-reset" data-confirm="Require a password reset and revoke this user’s refresh sessions?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="csrf_access_token" value="{{ request.cookies.get('csrf_access_token', '') }}"><button class="btn btn-table-danger" type="submit">Force reset</button></form>
+          </div></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4"><div class="empty-state"><h3>No accounts found</h3><p>Registered users will appear here.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

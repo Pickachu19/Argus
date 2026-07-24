@@ -1,48 +1,117 @@
-version: '3.8'
+name: argus
 
 services:
   nginx:
-    image: nginx:latest
-    ports:
-      - "80:80"
+    image: nginx:1.27.5-alpine
+    ports: ["80:80", "443:443"]
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
-      - user-service
-      - product-service
-    extra_hosts:        # <--- fixed indentation here
-      - "host.docker.internal:host-gateway"
+      user-service: {condition: service_healthy}
+      product-service: {condition: service_healthy}
+    networks: [frontend, backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "--quiet", "--spider", "https://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: {cpus: "0.50", memory: 128M}
 
   user-service:
     build: ./user-service
-    container_name: user-service
-    expose:
-      - "5000"
+    env_file: .env
     environment:
-      - FLASK_ENV=development
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/userdb?authSource=admin
+      FLASK_DEBUG: "0"
+    expose: ["5000"]
     depends_on:
-      - mongo
+      mongo: {condition: service_healthy}
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits: {cpus: "0.75", memory: 256M}
 
   product-service:
     build: ./product-service
-    container_name: product-service
-    expose:
-      - "5001"
+    env_file: .env
     environment:
-      - FLASK_ENV=development
-      - MONGO_URI=mongodb://mongo:27017/productdb
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/productdb?authSource=admin
+      USER_MONGO_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/userdb?authSource=admin
+      FLASK_DEBUG: "0"
+    expose: ["5001"]
+    volumes: ["product_uploads:/app/uploads"]
     depends_on:
-      - mongo
+      mongo: {condition: service_healthy}
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits: {cpus: "0.75", memory: 256M}
 
   mongo:
-    image: mongo:6
-    container_name: mongodb
-    ports:
-      - "27017:27017"
+    image: mongo:6.0.26
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes: ["mongo_data:/data/db"]
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ping:1}).ok' | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits: {cpus: "1.00", memory: 512M}
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    networks: [backend]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+    ports: ["3000:3000"]
     volumes:
-      - mongo_data:/data/db
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboard.json:/var/lib/grafana/dashboards/services.json:ro
+    networks: [backend]
+    restart: unless-stopped
+
+networks:
+  frontend:
+  backend:
+    internal: true
 
 volumes:
   mongo_data:
-
-
+  product_uploads:
+  grafana_data:

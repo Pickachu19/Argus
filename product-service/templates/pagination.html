@@ -1,0 +1,1 @@
+{% if pages > 1 %}<nav aria-label="Product pages"><ul class="pagination justify-content-center">{% for number in range(1, pages + 1) %}<li class="page-item {{ 'active' if number == page }}"><a class="page-link" href="{{ url_for(request.endpoint, page=number, q=search) }}" {% if number == page %}aria-current="page"{% endif %}>{{ number }}</a></li>{% endfor %}</ul></nav>{% endif %}

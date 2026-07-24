@@ -1,20 +1,53 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
+{% block title %}Products · Argus{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2>All Products</h2>
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        {% for product in products %}
-        <div class="col">
-            <div class="card h-100 bg-dark text-white border-secondary">
-                {# Removed the image display section completely #}
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title text-primary">{{ product.name }}</h5>
-                    <p class="card-text text-muted flex-grow-1">{{ product.description }}</p>
-                    <p class="card-text fs-4 fw-bold text-success mt-auto">${{ product.price }}</p>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+<header class="catalog-hero">
+  <div class="catalog-hero-copy">
+    <p class="eyebrow">Secure catalog</p>
+    <h1>Products worth a closer look.</h1>
+    <p>Explore the current collection in a fast, protected storefront built around clarity and trust.</p>
+  </div>
+  <div class="catalog-hero-meta" aria-label="Catalog trust signals">
+    <span class="security-pill"><span class="status-dot" aria-hidden="true"></span>TLS protected</span>
+    <span class="catalog-count">{{ total }} item{{ '' if total == 1 else 's' }}</span>
+  </div>
+</header>
+
+<section class="surface-card catalog-toolbar" aria-labelledby="catalog-heading">
+  <div class="section-heading catalog-heading-row">
+    <div><p class="eyebrow">Browse</p><h2 id="catalog-heading">Product catalog</h2></div>
+    {% if current_role == 'admin' %}<a class="btn btn-accent" href="{{ url_for('add_product') }}">Add product</a>{% endif %}
+  </div>
+  <form class="search-bar" method="get" role="search">
+    <div class="search-field">
+      <label class="visually-hidden" for="product-search">Search products by name</label>
+      <span class="search-symbol" aria-hidden="true"></span>
+      <input class="form-control" id="product-search" name="q" value="{{ search }}" placeholder="Search by product name" autocomplete="off">
     </div>
+    <button class="btn btn-primary" type="submit">Search</button>
+    {% if search %}<a class="btn btn-quiet" href="{{ url_for('index') }}">Clear</a>{% endif %}
+  </form>
+  {% if search %}<p class="filter-summary">Showing results for <strong>“{{ search }}”</strong></p>{% endif %}
+</section>
+
+{% if products %}
+<div class="product-grid" aria-label="Products">
+  {% for product in products %}
+  <article class="product-card">
+    <div class="product-media">
+      {% if product.image_filename %}<img class="product-image" loading="{{ 'eager' if loop.index <= 3 else 'lazy' }}" src="{{ url_for('uploaded_file', filename=product.image_filename) }}" alt="{{ product.name }}">{% else %}<div class="product-placeholder" aria-label="No image available"><span aria-hidden="true">A</span></div>{% endif %}
+      <span class="availability-badge"><span class="status-dot" aria-hidden="true"></span>Available</span>
+    </div>
+    <div class="product-card-body">
+      <div><p class="product-kicker">Catalog item</p><h2>{{ product.name }}</h2></div>
+      <p class="product-description">{{ product.description }}</p>
+      <div class="product-card-footer"><span class="price-label">Price</span><strong class="product-price">${{ '%.2f'|format(product.price) }}</strong></div>
+    </div>
+  </article>
+  {% endfor %}
 </div>
+{% else %}
+<div class="empty-state catalog-empty"><div class="empty-icon" aria-hidden="true">A</div><h2>No products found</h2><p>{% if search %}No items match that search. Try a shorter or different product name.{% elif current_role == 'admin' %}No products yet — add the first item to start the catalog.{% else %}The catalog is empty right now. Please check back soon.{% endif %}</p><div class="empty-actions">{% if search %}<a class="btn btn-quiet" href="{{ url_for('index') }}">Clear search</a>{% endif %}{% if current_role == 'admin' %}<a class="btn btn-accent" href="{{ url_for('add_product') }}">Add product</a>{% endif %}</div></div>
+{% endif %}
+{% include "pagination.html" %}
 {% endblock %}

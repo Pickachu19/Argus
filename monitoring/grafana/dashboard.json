@@ -1,0 +1,10 @@
+{
+  "title": "Secure Microservices",
+  "uid": "secure-services",
+  "schemaVersion": 40,
+  "refresh": "15s",
+  "panels": [
+    {"type":"timeseries","title":"Request rate","gridPos":{"h":8,"w":12,"x":0,"y":0},"targets":[{"expr":"sum(rate({__name__=~\"user_service_http_requests_total|product_service_http_requests_total\"}[5m])) by (route, status)","legendFormat":"{{route}} {{status}}"}]},
+    {"type":"timeseries","title":"95th percentile latency","gridPos":{"h":8,"w":12,"x":12,"y":0},"targets":[{"expr":"histogram_quantile(0.95, sum(rate({__name__=~\"user_service_http_request_seconds_bucket|product_service_http_request_seconds_bucket\"}[5m])) by (le, route))","legendFormat":"{{route}}"}]}
+  ]
+}

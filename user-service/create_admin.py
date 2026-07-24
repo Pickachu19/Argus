@@ -1,26 +1,23 @@
-from werkzeug.security import generate_password_hash
+import os
+
 from pymongo import MongoClient
+from werkzeug.security import generate_password_hash
 
-# Connect to MongoDB - update URI as needed
-client = MongoClient("mongodb://localhost:27017/")
-db = client.userdb
-users = db.users
+email = os.environ["ADMIN_EMAIL"].strip().lower()
+password = os.environ["ADMIN_PASSWORD"]
+if len(password) < 12 or password.startswith("change-me"):
+    raise SystemExit("ADMIN_PASSWORD must be a non-placeholder value of at least 12 characters")
 
-admin_email = "admin@example.com"
-admin_password = "adm!n_!0E"  # your desired admin password
-admin_username = "admin"
-
-# Check if admin user already exists, remove if yes
-users.delete_many({"email": admin_email})
-
-# Insert admin user with hashed password
-hashed_password = generate_password_hash(admin_password)
-users.insert_one({
-    "username": admin_username,
-    "email": admin_email,
-    "password": hashed_password,
-    "role": "admin"
-})
-
-print("Admin user created with email:", admin_email)
-
+db = MongoClient(os.environ["MONGO_URI"]).get_default_database()
+db.users.update_one(
+    {"email": email},
+    {"$set": {
+        "email": email,
+        "password": generate_password_hash(password, method="pbkdf2:sha256:600000"),
+        "role": "admin",
+        "disabled": False,
+        "force_password_reset": True,
+    }},
+    upsert=True,
+)
+print(f"Administrator {email} created; a password change is required at first login.")

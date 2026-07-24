@@ -1,0 +1,12 @@
+.env
+certs/*.crt
+certs/*.key
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+uploads/
+.venv/
+.codex-tmp/

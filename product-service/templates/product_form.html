@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if product else 'Add' }} product · Argus{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('manage_products') }}">← Back to products</a>
+<header class="form-hero">
+  <div><p class="eyebrow">Catalog administration</p><h1>{{ 'Edit product' if product else 'Add a new product' }}</h1><p>{{ 'Update the catalog details below. Existing media stays in place unless you upload a replacement.' if product else 'Create a clear, trustworthy catalog entry with accurate details and optional product media.' }}</p></div>
+  <span class="security-pill"><span class="status-dot" aria-hidden="true"></span>Protected action</span>
+</header>
+<section class="surface-card product-form-surface">
+  <form method="post" enctype="multipart/form-data" novalidate class="product-form js-submit-form">
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="csrf_access_token" value="{{ request.cookies.get('csrf_access_token', '') }}">
+    <div class="form-main">
+      <div class="field-group">
+        {{ form.name.label(class="form-label") }}
+        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Mechanical keyboard", autocomplete="off", aria_describedby="name-help name-errors") }}
+        <div class="form-help" id="name-help">Use a concise name customers will recognize.</div>
+        {% if form.name.errors %}<div class="invalid-feedback" id="name-errors">{{ form.name.errors|join(' ') }}</div>{% endif %}
+      </div>
+      <div class="field-group">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="6", placeholder="Describe the product, its key qualities, and who it is for.", aria_describedby="description-help description-errors") }}
+        <div class="form-help" id="description-help">Up to 1,000 characters. Keep the most useful details first.</div>
+        {% if form.description.errors %}<div class="invalid-feedback" id="description-errors">{{ form.description.errors|join(' ') }}</div>{% endif %}
+      </div>
+      <div class="field-group field-price">
+        {{ form.price.label(class="form-label") }}
+        <div class="price-input"><span aria-hidden="true">$</span>{{ form.price(class="form-control" + (" is-invalid" if form.price.errors else ""), placeholder="0.00", inputmode="decimal", aria_describedby="price-help price-errors") }}</div>
+        <div class="form-help" id="price-help">Enter the price in US dollars.</div>
+        {% if form.price.errors %}<div class="invalid-feedback d-block" id="price-errors">{{ form.price.errors|join(' ') }}</div>{% endif %}
+      </div>
+      <div class="form-actions"><button class="btn btn-accent" type="submit" data-loading-text="Saving…">{{ 'Save changes' if product else 'Add product' }}</button><a class="btn btn-quiet" href="{{ url_for('manage_products') }}">Cancel</a></div>
+    </div>
+    <aside class="media-panel" aria-labelledby="media-heading">
+      <div><p class="eyebrow">Media</p><h2 id="media-heading">Product image</h2><p class="form-help">JPG, PNG, or WebP. Maximum {{ config.MAX_CONTENT_LENGTH // 1048576 }} MB.</p></div>
+      <div class="image-preview" id="imagePreview">{% if product and product.image_filename %}<img src="{{ url_for('uploaded_file', filename=product.image_filename) }}" alt="Current image for {{ product.name }}">{% else %}<div class="preview-placeholder"><span aria-hidden="true">A</span><strong>No image selected</strong><small>Choose a file below to preview it.</small></div>{% endif %}</div>
+      <div class="field-group image-field">{{ form.image.label(class="form-label") }}{{ form.image(class="form-control" + (" is-invalid" if form.image.errors else ""), accept="image/jpeg,image/png,image/webp", aria_describedby="image-errors") }}{% if form.image.errors %}<div class="invalid-feedback" id="image-errors">{{ form.image.errors|join(' ') }}</div>{% endif %}</div>
+    </aside>
+  </form>
+</section>
+{% endblock %}
