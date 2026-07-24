@@ -85,7 +85,7 @@ services:
         limits: {cpus: "1.00", memory: 512M}
 
   prometheus:
-    image: prom/prometheus:v3.5.0
+    image: prom/prometheus:v3.13.1
     profiles: [monitoring]
     command: ["--config.file=/etc/prometheus/prometheus.yml"]
     volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
