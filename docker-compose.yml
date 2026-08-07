@@ -93,7 +93,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:12.1.0
+    image: grafana/grafana:13.1.2
     profiles: [monitoring]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
